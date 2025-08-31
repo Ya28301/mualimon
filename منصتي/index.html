@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <title>منصة معلمون — تعلّم بذكاء</title>
+
+  <!-- أداء: خط واحد خفيف -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;600;800&display=swap" rel="stylesheet"/>
+
+  <!-- GSAP (خفيف + مؤجل) -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/TextPlugin.min.js"></script>
+
+  <style>
+/* ========================================================================
+   لوحة ألوان متناسقة (تركواز/بنفسجي/أزرق) — نهاري/ليلي
+   ======================================================================== */
+:root{
+  --c1: #2dd4bf;  --c2:#a78bfa;  --c3:#60a5fa;
+  --c1d:#0ea5b7; --c2d:#7c3aed; --c3d:#2563eb;
+
+  --bg:#ffffff; --bg-soft:#f7fafc; --surface:#ffffff; --border:#e5e7eb;
+  --text-strong:#0f172a; --text:#1f2937; --muted:#475569;
+
+  --rad:16px;
+  --shadow-lg:0 20px 50px rgba(2,6,23,.08);
+  --shadow-md:0 12px 30px rgba(2,6,23,.06);
+
+  --promoH:56px;
+}
+.dark{
+  --c1:#06b6d4; --c2:#8b5cf6; --c3:#3b82f6;
+  --c1d:#0891b2; --c2d:#6d28d9; --c3d:#1d4ed8;
+
+  --bg:#0b1220; --bg-soft:#0f172a; --surface:#0f172a; --border:#1f2a37;
+  --text-strong:#e8ecf5; --text:#dbe3ee; --muted:#aab6c8;
+}
+
+/* ========================================================================
+   Reset + أساسيات
+   ======================================================================== */
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{
+  font-family:'Tajawal',system-ui,-apple-system,'Segoe UI',sans-serif;
+  background-color:var(--bg); color:var(--text);
+  line-height:1.75; transition:background-color .3s,color .3s;
+  padding-top:var(--promoH); overflow-x:hidden;
+}
+img{max-width:100%; display:block}
+a{color:inherit; text-decoration:none}
+.container{max-width:1200px; margin:0 auto; padding:0 16px}
+
+/* ========================================================================
+   خلفية شبكة الجزيئات 3D (Canvas)
+   ======================================================================== */
+#netCanvas{
+  position:fixed; inset:0; width:100vw; height:100vh;
+  z-index:-1; pointer-events:none; opacity:.85;
+}
+
+/* ========================================================================
+   Promo Bar — شريط تحفيزي ثابت
+   ======================================================================== */
+.promo{
+  position:fixed; inset-inline:0; top:0; height:var(--promoH); z-index:1200;
+  display:flex; align-items:center; gap:.75rem; padding-inline:12px;
+  color:#fff; font-weight:800; letter-spacing:.2px;
+  background:linear-gradient(90deg,var(--c1d),var(--c2d),var(--c3d),var(--c2d),var(--c1d));
+  background-size:230% 230%; animation:promoWave 12s ease infinite;
+  box-shadow:0 8px 24px rgba(0,0,0,.18);
+}
+@keyframes promoWave{
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
+}
+.promo .badge{
+  display:inline-flex; align-items:center; gap:.5rem;
+  padding:.4rem .8rem; border-radius:999px;
+  background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.28);
+}
+.promo-track{overflow:hidden; flex:1}
+.promo-line{white-space:nowrap; display:inline-block}
+.promo-btn{
+  background:transparent; color:#fff; border:1.5px solid rgba(255,255,255,.55);
+  padding:.35rem .7rem; border-radius:10px; cursor:pointer; font-weight:800
+}
+.promo-btn:hover{background:rgba(255,255,255,.12)}
+
+/* شريط التقدم */
+.progress{position:fixed; top:var(--promoH); right:0; height:3px; width:0;
+  background:linear-gradient(90deg,var(--c2),var(--c3)); z-index:1100}
+
+/* ========================================================================
+   Nav (sticky + glass) + موبايل منيو
+   ======================================================================== */
+.nav{
+  position:sticky; top:var(--promoH); z-index:1000;
+  background:rgba(255,255,255,.82); backdrop-filter:saturate(120%) blur(10px);
+  border-bottom:1px solid var(--border);
+}
+.dark .nav{ background:rgba(15,23,42,.74) }
+.nav-row{display:flex; align-items:center; justify-content:space-between; padding:12px 0}
+.brand{display:flex; align-items:center; gap:.6rem; font-weight:800; font-size:1.35rem; color:var(--text-strong)}
+.brand-badge{
+  width:42px; height:42px; border-radius:12px; display:grid; place-items:center;
+  color:#fff; box-shadow:var(--shadow-md);
+  background:linear-gradient(135deg,var(--c3),var(--c2));
+}
+nav ul{list-style:none; display:flex; gap:1.1rem}
+.nav-link{
+  position:relative; font-weight:700; padding:.55rem .9rem; border-radius:999px; color:var(--text);
+  transition:color .2s, transform .2s;
+}
+.nav-link:hover{color:var(--c2); transform:translateY(-1px)}
+.nav-link::after{
+  content:""; position:absolute; inset-inline:auto 10px; bottom:8px; height:3px; width:0;
+  background:linear-gradient(90deg,var(--c2),var(--c3)); border-radius:3px; transition:width .25s
+}
+.nav-link:hover::after{width:calc(100% - 20px)}
+.actions{display:flex; gap:.6rem}
+.btn{
+  border:none; cursor:pointer; font-weight:800; border-radius:12px; padding:.75rem 1.1rem; transition:.2s;
+  position:relative; overflow:hidden; will-change:transform
+}
+.btn:active{transform:scale(.98)}
+.btn-outline{background:transparent; color:var(--c2d); border:2px solid var(--c2d)}
+.btn-outline:hover{background:var(--c2d); color:#fff; box-shadow:0 10px 18px rgba(0,0,0,.12)}
+.btn-primary{color:#fff; background:linear-gradient(135deg,var(--c3),var(--c2))}
+.btn-primary:hover{transform:translateY(-2px); box-shadow:0 16px 26px rgba(0,0,0,.14)}
+/* ripple خفيف */
+.btn::after{
+  content:""; position:absolute; inset:auto auto 0 0; width:0; height:0; border-radius:50%;
+  background:rgba(255,255,255,.35); transform:translate(-50%,-50%); pointer-events:none
+}
+.btn:hover::after{animation:ripple .8s ease}
+@keyframes ripple{from{width:0;height:0;opacity:.6} to{width:220%;height:220%;opacity:0}}
+
+.m-toggle{
+  display:none; background:transparent; border:1px solid var(--border);
+  border-radius:12px; padding:.55rem .7rem; font-weight:800; cursor:pointer
+}
+.mnav{
+  display:none; position:fixed; inset:calc(var(--promoH) + 56px) 16px auto 16px;
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  padding:12px; z-index:1050; box-shadow:var(--shadow-lg)
+}
+.mnav a{display:block; padding:10px 12px; border-radius:10px}
+.mnav a:hover{background:var(--bg-soft)}
+@media (max-width:920px){
+  nav ul{display:none}
+  .m-toggle{display:inline-block}
+}
+
+/* ========================================================================
+   Hero — خلفية ناعمة + أشكال + احصاءات
+   ======================================================================== */
+.hero{
+  position:relative; overflow:hidden;
+  background:
+    radial-gradient(900px 520px at 85% 8%, rgba(96,165,250,.16), transparent 60%),
+    radial-gradient(750px 480px at 10% 75%, rgba(167,139,250,.12), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,.92), #fff);
+}
+.dark .hero{
+  background:
+    radial-gradient(900px 520px at 80% 10%, rgba(96,165,250,.18), transparent 60%),
+    radial-gradient(760px 500px at 10% 80%, rgba(167,139,250,.16), transparent 60%),
+    linear-gradient(180deg,#0b1220,#0f172a);
+}
+.hero-wrap{padding:92px 0 64px; text-align:center; perspective:1000px}
+.hero-icon{
+  display:inline-grid; place-items:center; width:62px; height:62px; border-radius:999px; color:#fff;
+  background:linear-gradient(135deg,var(--c3),var(--c2)); box-shadow:var(--shadow-md)
+}
+h1{
+  margin-top:18px; font-weight:800; font-size:clamp(2.2rem, 3.8vw, 4.2rem); color:var(--text-strong);
+  letter-spacing:.2px
+}
+.gradient-text{
+  background:linear-gradient(135deg,var(--c2),var(--c3));
+  background-clip:text; -webkit-background-clip:text;
+  color:transparent; -webkit-text-fill-color:transparent; display:inline-block;
+}
+.lead{max-width:780px; margin:14px auto 0; font-size:clamp(1rem,1.1vw,1.25rem); color:var(--muted)}
+.search{
+  margin:26px auto 0; display:flex; gap:8px; max-width:clamp(92%,70vw,760px); padding:clamp(6px,.8vw,10px);
+  border:1px solid var(--border); border-radius:999px; background:var(--surface); box-shadow:var(--shadow-md)
+}
+.search input{
+  flex:1; border:none; outline:none; background:transparent; padding:clamp(.9rem,1.2vw,1.1rem) clamp(1rem,1.4vw,1.2rem);
+  font-size:clamp(1rem,1vw,1.1rem); color:var(--text)
+}
+.search input::placeholder{color:var(--muted)}
+.hero-stats{display:flex; flex-wrap:wrap; gap:18px; justify-content:center; margin-top:26px}
+.stat{
+  min-width:clamp(140px,20vw,190px); text-align:center; padding:clamp(14px,1.6vw,22px);
+  border-radius:14px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow-md)
+}
+.stat .n{font-weight:800; font-size:clamp(1.6rem,2.3vw,2.4rem);
+  background:linear-gradient(135deg,var(--c2),var(--c3)); -webkit-background-clip:text; -webkit-text-fill-color:transparent}
+
+/* ========================================================================
+   أقسام (بطاقات 3D + Flip)
+   ======================================================================== */
+section{padding:64px 0}
+.section-title{text-align:center}
+.section-title h2{font-size:clamp(1.7rem,2.4vw,2.7rem); font-weight:800; color:var(--text-strong)}
+.section-title p{color:var(--muted); margin-top:8px}
+
+.grid{display:grid; gap:24px}
+.grid-4{grid-template-columns:repeat(auto-fit, minmax(280px, 1fr))}
+.grid-3{grid-template-columns:repeat(auto-fit, minmax(300px, 1fr))}
+
+.card{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--rad);
+  padding:clamp(18px,2.2vw,26px); box-shadow:var(--shadow-lg); transition:transform .25s, box-shadow .25s;
+  transform-style:preserve-3d; perspective:800px; will-change:transform; position:relative;
+}
+.card:hover{transform:translateY(-6px); box-shadow:0 26px 60px rgba(2,6,23,.12)}
+.cat-ico{
+  width:clamp(72px,8vw,96px); height:clamp(72px,8vw,96px); border-radius:50%; display:grid; place-items:center; color:#fff; margin:0 auto 12px; font-size:clamp(22px,2.4vw,30px);
+  background:linear-gradient(135deg,var(--c3),var(--c2)); box-shadow:0 12px 30px rgba(96,165,250,.25)
+}
+.card h3{text-align:center; font-weight:800; color:var(--text-strong); margin-top:6px}
+.card p{text-align:center; color:var(--muted); margin-top:8px}
+.card .open-more{display:block; margin:12px auto 0}
+
+/* طبقة الـ Flip */
+#flipLayer{
+  position:fixed; inset:0; z-index:1400; pointer-events:none; display:none;
+}
+.flip-backdrop{
+  position:absolute; inset:0; background:rgba(2,6,23,.35); backdrop-filter:blur(2px); opacity:0;
+}
+.flip-panel{
+  position:absolute; inset:auto; pointer-events:auto;
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--rad); box-shadow:var(--shadow-lg);
+  padding:24px; max-width:720px; width:min(92vw,720px);
+}
+.flip-close{
+  position:absolute; top:10px; left:10px;
+  background:transparent; border:1px solid var(--border); border-radius:10px; padding:.4rem .7rem; cursor:pointer; font-weight:800
+}
+
+/* ========================================================================
+   معلمون
+   ======================================================================== */
+.teacher-card{overflow:hidden; padding:0}
+.t-img{height:clamp(180px,24vw,260px); position:relative; overflow:hidden}
+.t-img img{width:100%; height:100%; object-fit:cover; transition:transform .55s; display:block}
+.teacher-card:hover .t-img img{transform:scale(1.1)}
+.t-badge{
+  position:absolute; top:12px; left:12px; background:linear-gradient(135deg,var(--c2),var(--c3));
+  color:#fff; padding:6px 10px; border-radius:999px; font-weight:800; font-size:.85rem
+}
+.t-body{padding:18px}
+.price{font-weight:800; color:var(--c2d)}
+.rating{color:#f59e0b}
+
+/* ========================================================================
+   التسعير
+   ======================================================================== */
+.pricing .card{position:relative; overflow:hidden}
+.popular{border:2px solid var(--c2d)}
+.popular::after{
+  content:"الأكثر شعبية"; position:absolute; top:16px; left:-36px; transform:rotate(-45deg);
+  background:linear-gradient(135deg,var(--c3),var(--c2)); color:#fff; padding:6px 42px; font-weight:800; font-size:.85rem
+}
+.price-tag{font-weight:800; font-size:clamp(1.9rem,2.4vw,2.6rem); color:var(--c3); margin:8px 0}
+
+/* ========================================================================
+   آراء — سلايدر GSAP
+   ======================================================================== */
+.testimonials{overflow:hidden}
+.ts-track{display:flex; gap:20px; will-change:transform}
+.ts-item{
+  min-width:360px; flex:0 0 360px; background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--rad); box-shadow:var(--shadow-lg); padding:22px
+}
+.ts-item p{color:var(--muted)}
+@media (max-width:420px){ .ts-item{ min-width:300px; flex:0 0 300px } }
+
+/* ========================================================================
+   التذييل
+   ======================================================================== */
+footer{background:var(--bg-soft); border-top:1px solid var(--border)}
+footer h3{font-weight:800; color:var(--text-strong)}
+
+/* ========================================================================
+   زر الثيم
+   ======================================================================== */
+.theme-toggle{
+  position:fixed; left:18px; bottom:18px; width:50px; height:50px; border-radius:50%;
+  background:linear-gradient(135deg,var(--c3),var(--c2)); color:#fff; display:grid; place-items:center;
+  box-shadow:0 10px 22px rgba(0,0,0,.2); z-index:1300; cursor:pointer; font-weight:800
+}
+
+/* تقليل الحركة */
+@media (prefers-reduced-motion:reduce){
+  *{animation:none !important; transition:none !important}
+  #netCanvas{display:none}
+}
+
+/* =========================================================
+   Responsive Scale — موبايل → وسط → لابتوب/كبير
+   ========================================================= */
+html { font-size: 15.5px; }                 /* موبايل مريح */
+@media (min-width: 640px){  html { font-size: 16.5px; } }   /* وسط */
+@media (min-width: 1024px){ html { font-size: 18px;   } }   /* لابتوب */
+@media (min-width: 1440px){ html { font-size: 19px;   } }   /* كبير جداً */
+
+.container { max-width: min(92vw, 1200px); }
+@media (min-width: 1200px){ .container { max-width: 1240px; } }
+@media (min-width: 1440px){ .container { max-width: 1320px; } }
+@media (min-width: 1680px){ .container { max-width: 1400px; } }
+
+.nav-link{ font-size: clamp(.95rem,.95vw,1.05rem); padding:.55rem 1rem; }
+.btn{ font-size: clamp(.95rem,1vw,1.1rem); padding: clamp(.75rem,1.1vw,1rem) clamp(1rem,1.4vw,1.35rem); border-radius: clamp(12px,1.2vw,14px); }
+.hero-icon{ width: clamp(52px,6.2vw,68px); height: clamp(52px,6.2vw,68px); }
+  </style>
+</head>
+<body>
+
+  <!-- خلفية شبكة الجزيئات -->
+  <canvas id="netCanvas" aria-hidden="true"></canvas>
+
+  <!-- Promo Bar -->
+  <div class="promo" id="promoBar" role="region" aria-label="تنبيهات المنصة">
+    <span class="badge">
+      <!-- برق -->
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+      جديد
+    </span>
+    <div class="promo-track">
+      <span class="promo-line" id="promoText">نوفر لك نخبة المعلمين — ابدأ الآن ✨</span>
+    </div>
+    <button class="promo-btn" id="hidePromo" aria-label="إخفاء الشريط">إخفاء</button>
+  </div>
+
+  <!-- شريط التقدم -->
+  <div class="progress" id="progressBar"></div>
+
+  <!-- Nav -->
+  <header class="nav">
+    <div class="container nav-row">
+      <a href="#" class="brand">
+        <span class="brand-badge" aria-hidden="true">
+          <!-- كتاب -->
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 4a2 2 0 012-2h7a4 4 0 014 4v13a3 3 0 00-3-3H5a2 2 0 01-2-2V4z"/><path d="M21 4v15a3 3 0 00-3-3h-7a2 2 0 00-2 2V6a2 2 0 012-2h7a2 2 0 012 2z"/></svg>
+        </span>
+        معلمون
+      </a>
+
+      <nav aria-label="الرئيسي">
+        <ul>
+          <li><a class="nav-link" href="#">الرئيسية</a></li>
+          <li><a class="nav-link" href="#categories">الأقسام</a></li>
+          <li><a class="nav-link" href="#teachers">المعلمون</a></li>
+          <li><a class="nav-link" href="#pricing">الاشتراك</a></li>
+          <li><a class="nav-link" href="#contact">اتصل بنا</a></li>
+        </ul>
+      </nav>
+
+      <div class="actions">
+        <button class="btn btn-outline">تسجيل</button>
+        <button class="btn btn-primary">تسجيل الدخول</button>
+        <button class="m-toggle" id="mToggle" aria-expanded="false" aria-controls="mnav">القائمة ☰</button>
+      </div>
+    </div>
+
+    <!-- قائمة موبايل -->
+    <div id="mnav" class="mnav" role="dialog" aria-modal="false">
+      <a href="#">الرئيسية</a>
+      <a href="#categories">الأقسام</a>
+      <a href="#teachers">المعلمون</a>
+      <a href="#pricing">الاشتراك</a>
+      <a href="#contact">اتصل بنا</a>
+      <div style="display:flex; gap:.6rem; margin-top:8px">
+        <button class="btn btn-outline" style="flex:1">تسجيل</button>
+        <button class="btn btn-primary" style="flex:1">دخول</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero" id="hero">
+    <div class="container hero-wrap">
+      <span class="hero-icon" aria-hidden="true">
+        <!-- قبعة تخرج -->
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/><path d="M7 12v5c0 1.1 2.24 2 5 2s5-.9 5-2v-5l-5 2.73L7 12z"/></svg>
+      </span>
+      <h1>منصة <span class="gradient-text">معلمون</span> التعليمية</h1>
+      <p class="lead" id="heroLead">نوفر لك أفضل المعلمين في مختلف المجالات التعليمية.</p>
+
+      <div class="search" role="search">
+        <input type="text" placeholder="ابحث عن معلم، مادة، أو تخصص…" aria-label="بحث"/>
+        <button class="btn btn-primary" aria-label="زر البحث">بحث</button>
+      </div>
+
+      <div class="hero-stats">
+        <div class="stat"><div class="n" data-count="500">0</div><div>معلم معتمد</div></div>
+        <div class="stat"><div class="n" data-count="2500">0</div><div>طالب مستفيد</div></div>
+        <div class="stat"><div class="n" data-count="120">0</div><div>تخصص تعليمي</div></div>
+        <div class="stat"><div class="n" data-count="98">0</div><div>% رضا العملاء</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- الأقسام -->
+  <section id="categories">
+    <div class="container">
+      <div class="section-title">
+        <h2>أقسام المنصة</h2>
+        <p>اختر القسم المناسب وابدأ رحلتك التعليمية الآن.</p>
+      </div>
+
+      <div class="grid grid-4">
+        <div class="card">
+          <div class="cat-ico">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8 2 4 4 4 8v8c0 4 4 6 8 6s8-2 8-6V8c0-4-4-6-8-6zm0 2c3.3 0 6 1.6 6 4v8c0 2.4-2.7 4-6 4s-6-1.6-6-4V8c0-2.4 2.7-4 6-4z"/><path d="M8 10l4 2 4-2-4-2-4 2z"/></svg>
+          </div>
+          <h3>الحلقات القرآنية</h3>
+          <p>تحفيظ القرآن، التجويد وعلومه.</p>
+          <button class="btn btn-primary open-more" data-title="الحلقات القرآنية" data-text="دروس فردية وجماعية بتحفيظ وإتقان التجويد.">تفاصيل</button>
+        </div>
+
+        <div class="card">
+          <div class="cat-ico">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M4 10l8-6 8 6v10h-5v-6H9v6H4z"/></svg>
+          </div>
+          <h3>المدارس</h3>
+          <p>مواد من الابتدائي حتى الثانوي.</p>
+          <button class="btn btn-primary open-more" data-title="المدارس" data-text="شرح مبسّط وتمارين تفاعلية لجميع المراحل.">تفاصيل</button>
+        </div>
+
+        <div class="card">
+          <div class="cat-ico">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M3 4h18v4H3z"/><path d="M5 10h14v10H5z"/></svg>
+          </div>
+          <h3>الجامعات</h3>
+          <p>مواد أكاديمية متقدمة.</p>
+          <button class="btn btn-primary open-more" data-title="الجامعات" data-text="أساتذة مختصّون ومراجعات قبل الاختبارات.">تفاصيل</button>
+        </div>
+
+        <div class="card">
+          <div class="cat-ico">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h10v6H4z"/><path d="M4 12h16v8H4z"/></svg>
+          </div>
+          <h3>الدورات</h3>
+          <p>مهارات مهنية وتقنية.</p>
+          <button class="btn btn-primary open-more" data-title="الدورات" data-text="مسارات مكثّفة مع مشاريع تطبيقية.">تفاصيل</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- المعلّمون -->
+  <section id="teachers" style="background:linear-gradient(180deg,rgba(96,165,250,.06),transparent)">
+    <div class="container">
+      <div class="section-title">
+        <h2>المعلمون المتاحون</h2>
+        <p>نماذج من أفضل المعلمين لدينا.</p>
+      </div>
+
+      <div class="grid grid-3">
+        <div class="card teacher-card">
+          <div class="t-img">
+            <img loading="lazy" decoding="async" src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=800&q=60&auto=format&fit=crop" alt="أحمد السعدي">
+            <span class="t-badge">مميز</span>
+          </div>
+          <div class="t-body">
+            <h4 style="font-weight:800; color:var(--text-strong)">أحمد السعدي</h4>
+            <p style="color:var(--muted)">معلم قرآن كريم • شمال الرياض</p>
+            <div style="display:flex; align-items:center; justify-content:space-between">
+              <span class="price">80 ريال/ساعة</span>
+              <span class="rating">★ ★ ★ ★ ☆ <small>(24)</small></span>
+            </div>
+            <div style="margin-top:12px"><button class="btn btn-primary" style="width:100%">عرض الملف</button></div>
+          </div>
+        </div>
+
+        <div class="card teacher-card">
+          <div class="t-img">
+            <img loading="lazy" decoding="async" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&q=60&auto=format&fit=crop" alt="فاطمة العتيبي">
+            <span class="t-badge">جديد</span>
+          </div>
+          <div class="t-body">
+            <h4 style="font-weight:800; color:var(--text-strong)">فاطمة العتيبي</h4>
+            <p style="color:var(--muted)">معلمة تجويد • غرب الرياض</p>
+            <div style="display:flex; align-items:center; justify-content:space-between">
+              <span class="price">70 ريال/ساعة</span>
+              <span class="rating">★ ★ ★ ★ ★ <small>(18)</small></span>
+            </div>
+            <div style="margin-top:12px"><button class="btn btn-primary" style="width:100%">عرض الملف</button></div>
+          </div>
+        </div>
+
+        <div class="card teacher-card">
+          <div class="t-img">
+            <img loading="lazy" decoding="async" src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=800&q=60&auto=format&fit=crop" alt="محمد الغامدي">
+            <span class="t-badge">خبير</span>
+          </div>
+          <div class="t-body">
+            <h4 style="font-weight:800; color:var(--text-strong)">محمد الغامدي</h4>
+            <p style="color:var(--muted)">تفسير القرآن • وسط الرياض</p>
+            <div style="display:flex; align-items:center; justify-content:space-between">
+              <span class="price">120 ريال/ساعة</span>
+              <span class="rating">★ ★ ★ ★ ☆ <small>(32)</small></span>
+            </div>
+            <div style="margin-top:12px"><button class="btn btn-primary" style="width:100%">عرض الملف</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- التسعير -->
+  <section id="pricing">
+    <div class="container">
+      <div class="section-title">
+        <h2>انضم كمعلم في منصتنا</h2>
+        <p>اختر الباقة المناسبة وابدأ الآن.</p>
+      </div>
+
+      <div class="grid grid-3 pricing">
+        <div class="card">
+          <h3 style="text-align:center; font-weight:800; color:var(--text-strong)">الباقة الأساسية</h3>
+          <div class="price-tag" style="text-align:center">99 <span style="font-size:1rem; color:var(--muted)">ريال/شهر</span></div>
+          <ul style="list-style:none; margin-top:14px; color:var(--muted); padding:0 6px; line-height:2">
+            <li>ظهور في نتائج البحث الأساسية</li>
+            <li>صفحة شخصية أساسية</li>
+            <li>حتى 5 صور وعينة صوتية</li>
+            <li>دعم عبر البريد</li>
+          </ul>
+          <div style="text-align:center; margin-top:14px"><button class="btn btn-outline">ابدأ الآن</button></div>
+        </div>
+
+        <div class="card popular">
+          <h3 style="text-align:center; font-weight:800; color:var(--text-strong)">الباقة المميزة</h3>
+          <div class="price-tag" style="text-align:center">199 <span style="font-size:1rem; color:var(--muted)">ريال/شهر</span></div>
+          <ul style="list-style:none; margin-top:14px; color:var(--muted); padding:0 6px; line-height:2">
+            <li>ظهور مميز في بداية النتائج</li>
+            <li>صفحة شخصية متكاملة</li>
+            <li>عدد غير محدود من الوسائط</li>
+            <li>دعم هاتفي وبريدي</li>
+            <li>إحصائيات متقدمة</li>
+          </ul>
+          <div style="text-align:center; margin-top:14px"><button class="btn btn-primary">اشترك الآن</button></div>
+        </div>
+
+        <div class="card">
+          <h3 style="text-align:center; font-weight:800; color:var(--text-strong)">الباقة الاحترافية</h3>
+          <div class="price-tag" style="text-align:center">349 <span style="font-size:1rem; color:var(--muted)">ريال/شهر</span></div>
+          <ul style="list-style:none; margin-top:14px; color:var(--muted); padding:0 6px; line-height:2">
+            <li>أولوية الظهور في جميع النتائج</li>
+            <li>تخصيص كامل للصفحة</li>
+            <li>عروض على الصفحة الرئيسية</li>
+            <li>دعم مخصص 24/7</li>
+            <li>تقارير أداء مفصلة</li>
+          </ul>
+          <div style="text-align:center; margin-top:14px"><button class="btn btn-outline">اشترك الآن</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- آراء العملاء -->
+  <section id="testimonials" class="testimonials">
+    <div class="container">
+      <div class="section-title">
+        <h2>آراء عملائنا</h2>
+        <p>ماذا يقول المستخدمون عن تجربتهم معنا؟</p>
+      </div>
+
+      <div class="ts-viewport" style="overflow:hidden; position:relative">
+        <div class="ts-track" id="tsTrack" aria-live="polite">
+          <div class="ts-item"><p>"تجربة رائعة وسهولة في العثور على المعلم المناسب."</p></div>
+          <div class="ts-item"><p>"الدعم ممتاز والنتائج ظهرت بسرعة. شكرًا لكم!"</p></div>
+          <div class="ts-item"><p>"واجهة أنيقة وسلاسة في الحجز والتواصل."</p></div>
+          <div class="ts-item"><p>"أسعار مناسبة ومعلّمون محترفون."</p></div>
+        </div>
+
+        <div style="display:flex; gap:10px; justify-content:center; margin-top:16px">
+          <button class="btn btn-outline" id="prevTs" aria-label="السابق">‹</button>
+          <button class="btn btn-outline" id="nextTs" aria-label="التالي">›</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer id="contact">
+    <div class="container" style="padding:36px 0">
+      <div class="grid grid-3">
+        <div>
+          <div style="display:flex; align-items:center; gap:.6rem">
+            <span class="brand-badge" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 4a2 2 0 012-2h7a4 4 0 014 4v13a3 3 0 00-3-3H5a2 2 0 01-2-2V4z"/><path d="M21 4v15a3 3 0 00-3-3h-7a2 2 0 00-2 2V6a2 2 0 012-2h7a2 2 0 012 2z"/></svg>
+            </span>
+            <h3>معلمون</h3>
+          </div>
+          <p style="margin-top:10px; color:var(--muted)">منصة تربط الطلاب بأفضل المعلمين في مختلف المجالات.</p>
+          <div style="display:flex; gap:.6rem; margin-top:12px; flex-wrap:wrap">
+            <a class="btn btn-outline" href="#" aria-label="فيسبوك">f</a>
+            <a class="btn btn-outline" href="#" aria-label="تويتر">𝕏</a>
+            <a class="btn btn-outline" href="#" aria-label="انستغرام">IG</a>
+            <a class="btn btn-outline" href="#" aria-label="يوتيوب">▶</a>
+          </div>
+        </div>
+
+        <div>
+          <h3>روابط</h3>
+          <ul style="list-style:none; margin-top:10px; color:var(--muted); line-height:2">
+            <li><a href="#">الرئيسية</a></li>
+            <li><a href="#categories">الأقسام</a></li>
+            <li><a href="#teachers">المعلمون</a></li>
+            <li><a href="#pricing">الاشتراك</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h3>اتصل بنا</h3>
+          <ul style="list-style:none; margin-top:10px; color:var(--muted); line-height:2">
+            <li>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="margin-inline:6px 0"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>
+              الرياض، السعودية
+            </li>
+            <li>+966 12 345 6789</li>
+            <li>info@mualimon.com</li>
+          </ul>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border); margin-top:22px; padding-top:14px; text-align:center; color:var(--muted)">
+        © 2025 منصة معلمون
+      </div>
+    </div>
+  </footer>
+
+  <!-- طبقة تفاصيل (Flip-like) -->
+  <div id="flipLayer" aria-hidden="true">
+    <div class="flip-backdrop"></div>
+    <div class="flip-panel" role="dialog" aria-modal="true" aria-labelledby="flipTitle">
+      <button class="flip-close" id="flipClose" aria-label="إغلاق">إغلاق ✕</button>
+      <h3 id="flipTitle" style="font-weight:800; color:var(--text-strong); margin-bottom:8px"></h3>
+      <p id="flipText" style="color:var(--muted)"></p>
+    </div>
+  </div>
+
+  <!-- زر الثيم -->
+  <button class="theme-toggle" id="themeToggle" aria-label="تبديل الثيم">☾</button>
+
+  <!-- Scripts -->
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    gsap.registerPlugin(ScrollTrigger, TextPlugin);
+
+    /* ================= Promo Rotator ================= */
+    const phrases = [
+      "نوفر لك نخبة المعلمين — ابدأ الآن ✨",
+      "جودة عالية وأسعار تنافسية 📚",
+      "احجز حصتك في أقل من دقيقة ⚡"
+    ];
+    const promoEl = document.getElementById('promoText');
+    let idx = 0;
+    setInterval(() => {
+      idx = (idx + 1) % phrases.length;
+      gsap.to(promoEl, {duration:.24, opacity:0, onComplete:() => {
+        promoEl.textContent = phrases[idx];
+        gsap.to(promoEl, {duration:.34, opacity:1});
+      }});
+    }, 3800);
+
+    document.getElementById('hidePromo').addEventListener('click', () => {
+      const bar = document.getElementById('promoBar');
+      gsap.to(bar, {y:-bar.offsetHeight, duration:.4, onComplete:() => {
+        bar.style.display = 'none';
+        document.body.style.paddingTop = '0px';
+        document.getElementById('progressBar').style.top = '0px';
+      }});
+    });
+
+    /* ================= Hero Intro ================= */
+    gsap.from(".hero-icon", {y:40, opacity:0, duration:.9, ease:"power3.out"});
+    gsap.from("h1", {y:24, opacity:0, duration:.9, delay:.1});
+    gsap.to("#heroLead", {
+      text:"نوفر لك أفضل المعلمين في مختلف المجالات التعليمية: حلقات قرآنية، مدارس، جامعات، ودورات متخصصة.",
+      duration:1.6, delay:.3, ease:"none"
+    });
+
+    /* ================= Stats Counter ================= */
+    document.querySelectorAll(".stat .n").forEach(n => {
+      const target = +n.dataset.count;
+      gsap.fromTo(n, {innerText:0}, {
+        innerText: target, duration: 2, roundProps: "innerText", ease: "power1.out",
+        scrollTrigger: { trigger: n, start: "top 85%" }
+      });
+    });
+
+    /* ================= Scroll reveal for cards ================= */
+    gsap.utils.toArray(".card").forEach((el, i) => {
+      gsap.from(el, {
+        y:28, opacity:0, duration:.7, delay: i*0.02,
+        scrollTrigger:{trigger:el, start:"top 90%"}
+      });
+    });
+
+    /* ================= Progress Bar ================= */
+    const pb = document.getElementById('progressBar');
+    window.addEventListener('scroll', () => {
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      const p = (window.scrollY / h) * 100;
+      pb.style.width = p + '%';
+    });
+
+    /* ================= Theme Toggle ================= */
+    const tgl = document.getElementById('themeToggle');
+    const saved = localStorage.getItem('theme');
+    if(saved === 'dark'){ document.body.classList.add('dark'); tgl.textContent = '☀'; }
+    tgl.addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+      const dark = document.body.classList.contains('dark');
+      tgl.textContent = dark ? '☀' : '☾';
+      localStorage.setItem('theme', dark ? 'dark' : 'light');
+    });
+
+    /* ================= Mobile Nav ================= */
+    const mToggle = document.getElementById('mToggle');
+    const mnav = document.getElementById('mnav');
+    mToggle?.addEventListener('click', () => {
+      const open = mnav.style.display === 'block';
+      mnav.style.display = open ? 'none' : 'block';
+      mToggle.setAttribute('aria-expanded', String(!open));
+    });
+
+    /* ================= Flip-like Details Panel ================= */
+    const layer = document.getElementById('flipLayer');
+    const panel = layer.querySelector('.flip-panel');
+    const backdrop = layer.querySelector('.flip-backdrop');
+    const titleEl = document.getElementById('flipTitle');
+    const textEl = document.getElementById('flipText');
+    const closeBtn = document.getElementById('flipClose');
+
+    function openPanel(fromEl, title, text){
+      titleEl.textContent = title; textEl.textContent = text;
+      layer.style.display = 'block'; layer.setAttribute('aria-hidden','false');
+
+      // قفل تمرير الخلفية
+      const prevOverflow = document.body.style.overflow;
+      document.body.dataset.prevOverflow = prevOverflow || '';
+      document.body.style.overflow = 'hidden';
+
+      // موضع أولي من عنصر المصدر
+      const r = fromEl.getBoundingClientRect();
+      const start = { x:r.left + r.width/2, y:r.top + r.height/2, w:r.width, h:r.height };
+      const endW = Math.min(720, window.innerWidth * .92);
+      const endH = panel.offsetHeight || 240;
+      const end = { x: window.innerWidth/2, y: window.innerHeight/2, w: endW, h: endH };
+
+      // ضع اللوحة على أبعاد المصدر أولاً
+      Object.assign(panel.style, {
+        left: (start.x - start.w/2) + 'px',
+        top:  (start.y - start.h/2) + 'px',
+        width: start.w + 'px',
+        height: start.h + 'px',
+        opacity: '0'
+      });
+
+      // أنيميشن انتقال إلى الوسط
+      gsap.to(backdrop, {opacity:1, duration:.2, pointerEvents:'auto'});
+      gsap.to(panel, {
+        left:(end.x - end.w/2), top:(end.y - (end.h/2)), width:end.w, height:'auto', opacity:1,
+        ease:'power2.out', duration:.35
+      });
+    }
+    function closePanel(){
+      gsap.to(backdrop, {opacity:0, duration:.2});
+      gsap.to(panel, {scale:.96, opacity:0, duration:.18, onComplete:()=>{
+        layer.style.display='none';
+        layer.setAttribute('aria-hidden','true');
+        // إعادة التمرير
+        document.body.style.overflow = document.body.dataset.prevOverflow || '';
+      }});
+    }
+    document.querySelectorAll('.open-more').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        e.preventDefault();
+        openPanel(btn, btn.dataset.title, btn.dataset.text);
+      });
+    });
+    closeBtn.addEventListener('click', closePanel);
+    backdrop.addEventListener('click', closePanel);
+    window.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && layer.style.display==='block') closePanel(); });
+
+    /* ================= Testimonials Slider ================= */
+    const track = document.getElementById('tsTrack');
+    const items = track.children;
+    let index = 0;
+    function slideTo(i){
+      const w = items[0].offsetWidth + 20; // item width + gap
+      gsap.to(track, {x: -w*i, duration:.6, ease:"power2.out"});
+    }
+    document.getElementById('nextTs').addEventListener('click', ()=>{
+      index = Math.min(index + 1, items.length - 1);
+      slideTo(index);
+    });
+    document.getElementById('prevTs').addEventListener('click', ()=>{
+      index = Math.max(index - 1, 0);
+      slideTo(index);
+    });
+
+    /* ================= شبكة الجزيئات 3D (Canvas) ================= */
+    const canvas = document.getElementById('netCanvas');
+    const ctx = canvas.getContext('2d');
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let W, H, points, mouse = {x:-1e3, y:-1e3};
+    const MAX_POINTS = 70;       // خفيف
+    const LINK_DIST = 140;       // مسافة الربط
+    function resize(){
+      W = canvas.clientWidth; H = canvas.clientHeight;
+      canvas.width = W * dpr; canvas.height = H * dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+    function rand(min,max){ return Math.random()*(max-min)+min; }
+    function init(){
+      resize();
+      points = [];
+      for(let i=0;i<MAX_POINTS;i++){
+        points.push({
+          x: rand(0,W), y: rand(0,H),
+          vx: rand(-0.3,0.3), vy: rand(-0.3,0.3)
+        });
+      }
+    }
+    function step(){
+      ctx.clearRect(0,0,W,H);
+      // move + bounce
+      for(const p of points){
+        p.x += p.vx; p.y += p.vy;
+        if(p.x<0||p.x>W) p.vx*=-1;
+        if(p.y<0||p.y>H) p.vy*=-1;
+      }
+      // links
+      for(let i=0;i<points.length;i++){
+        const p = points[i];
+        // draw node
+        const dxm = p.x - mouse.x, dym = p.y - mouse.y;
+        const dm2 = dxm*dxm + dym*dym;
+        const nearMouse = dm2 < (LINK_DIST*LINK_DIST);
+        ctx.beginPath(); ctx.arc(p.x,p.y, nearMouse?2.2:1.6, 0, Math.PI*2); ctx.fillStyle = 'rgba(167,139,250,.9)'; ctx.fill();
+
+        for(let j=i+1;j<points.length;j++){
+          const q = points[j];
+          const dx = p.x - q.x, dy = p.y - q.y;
+          const d2 = dx*dx + dy*dy;
+          if(d2 < LINK_DIST*LINK_DIST){
+            const a = 1 - Math.sqrt(d2)/LINK_DIST;
+            ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y);
+            ctx.strokeStyle = `rgba(96,165,250,${0.25*a})`; ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(step);
+    }
+    if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      init(); step();
+      window.addEventListener('resize', resize);
+      window.addEventListener('mousemove', (e)=>{ mouse.x = e.clientX; mouse.y = e.clientY; });
+      window.addEventListener('mouseleave', ()=>{ mouse.x = -1e3; mouse.y = -1e3; });
+    }
+  });
+  </script>
+</body>
+</html>
